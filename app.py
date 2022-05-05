@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import prettytable
-from utils import *
-from pprint import pprint
-from datetime import datetime
+import json
+
+
+def load_json(path):
+	"""Загружает данные из json-файла"""
+	with open(path, encoding='utf-8') as file:
+		return json.load(file)
+
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -16,6 +20,7 @@ db = SQLAlchemy(app)
 
 
 class User(db.Model):
+	"""Модель пользователя"""
 	__tablename__ = 'user'
 	id = db.Column(db.Integer, primary_key=True)
 	first_name = db.Column(db.String(20))
@@ -27,12 +32,13 @@ class User(db.Model):
 
 
 class Order(db.Model):
+	"""Модель заказа"""
 	__tablename__ = 'order'
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(20), nullable=True)
 	description = db.Column(db.String(200))
-	start_date = db.Column(db.Date)
-	end_date = db.Column(db.Date)
+	start_date = db.Column(db.String(15))
+	end_date = db.Column(db.String(15))
 	address = db.Column(db.String(50))
 	price = db.Column(db.Integer)
 	customer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -40,6 +46,7 @@ class Order(db.Model):
 
 
 class Offer(db.Model):
+	"""Модель предложения"""
 	__tablename__ = 'offer'
 	id = db.Column(db.Integer, primary_key=True)
 	order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
@@ -54,6 +61,7 @@ users = load_json('users.json')
 orders = load_json('orders.json')
 offers = load_json('offers.json')
 
+# Заполняем таблицы
 with db.session.begin():
 	for user in users:
 		db.session.add(User(
@@ -71,8 +79,8 @@ with db.session.begin():
 			id=order.get('id'),
 			name=order.get('name'),
 			description=order.get('description'),
-			start_date=datetime.strptime(order.get('start_date'), '%m/%d/%Y').date(),
-			end_date=datetime.strptime(order.get('end_date'), '%m/%d/%Y').date(),
+			start_date=order.get('start_date'),
+			end_date=order.get('end_date'),
 			address=order.get('address'),
 			price=order.get('price'),
 			customer_id=order.get('customer_id'),
@@ -89,6 +97,7 @@ with db.session.begin():
 
 @app.route('/users/', methods=['GET', 'POST'])
 def users():
+	"""Вывод и добавление пользователей"""
 	if request.method == 'GET':
 		result = []
 		for user in db.session.query(User).all():
@@ -120,6 +129,7 @@ def users():
 
 @app.route('/users/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def user_by_id(id):
+	"""Вывод, изменение, удаление пользователя"""
 	user = db.session.query(User).get(id)
 
 	if request.method == 'GET':
@@ -155,6 +165,7 @@ def user_by_id(id):
 
 @app.route('/orders/', methods=['GET', 'POST'])
 def orders():
+	"""Вывод и добавление заказов"""
 	if request.method == 'GET':
 		result = []
 		for order in db.session.query(Order).all():
@@ -174,11 +185,10 @@ def orders():
 	elif request.method == 'POST':
 		order = request.json
 		new_order = Order(
-			id=order.get('id'),
 			name=order.get('name'),
 			description=order.get('description'),
-			start_date=datetime.strptime(order.get('start_date'), '%m/%d/%Y').date(),
-			end_date=datetime.strptime(order.get('end_date'), '%m/%d/%Y').date(),
+			start_date=order.get('start_date'),
+			end_date=order.get('end_date'),
 			address=order.get('address'),
 			price=order.get('price'),
 			customer_id=order.get('customer_id'),
@@ -191,6 +201,7 @@ def orders():
 
 @app.route('/orders/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def order_by_id(id):
+	"""Вывод, изменение, удаление заказов"""
 	order = db.session.query(Order).get(id)
 
 	if request.method == 'GET':
@@ -230,6 +241,7 @@ def order_by_id(id):
 
 @app.route('/offers/', methods=['GET', 'POST'])
 def offers():
+	"""Вывод и добавление предложений"""
 	if request.method == 'GET':
 		result = []
 		for offer in db.session.query(Offer).all():
@@ -243,17 +255,17 @@ def offers():
 	elif request.method == 'POST':
 		offer = request.json
 		new_offer = Offer(
-			id=offer.get('id'),
 			order_id=offer.get('order_id'),
 			executor_id=offer.get('executor_id')
 		)
 		with db.session.begin():
 			db.session.add(new_offer)
-		return f'Новое предложение "{new_offer.name}" успешно добавлено в базу!'
+		return f'Новое предложение с ID {new_offer.id} успешно добавлено в базу!'
 
 
 @app.route('/offers/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def offer_by_id(id):
+	"""Вывод, изменение, удаление предложений"""
 	offer = db.session.query(Offer).get(id)
 
 	if request.method == 'GET':
@@ -266,32 +278,18 @@ def offer_by_id(id):
 	elif request.method == 'PUT':
 		update = request.json
 
-		offer.id = update.get('id', offer.id)
 		offer.order_id = update.get('order_id', offer.order_id)
 		offer.executor_id = update.get('executor_id', offer.executor_id)
 
 		db.session.add(offer)
 		db.session.commit()
-		return f'Данные предложения "{offer.name}" с ID {offer.id} успешно обновлены!'
+		return f'Данные предложения с ID {offer.id} успешно обновлены!'
 
 	elif request.method == 'DELETE':
 		db.session.delete(offer)
 		db.session.commit()
-		return f'Заказ "{offer.name}" с ID {offer.id} успешно удален из базы!'
+		return f'Заказ с ID {offer.id} успешно удален из базы!'
 
-
-def print_table():
-	cursor = db.session.execute('SELECT * from user').cursor
-	print(prettytable.from_db_cursor(cursor))
-
-	cursor = db.session.execute('SELECT * from `order`').cursor
-	print(prettytable.from_db_cursor(cursor))
-
-	cursor = db.session.execute('SELECT * from offer').cursor
-	print(prettytable.from_db_cursor(cursor))
-
-
-# print_table()
 
 if __name__ == '__main__':
 	app.run()
