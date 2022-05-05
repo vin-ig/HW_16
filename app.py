@@ -6,7 +6,7 @@ from pprint import pprint
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['DEGUG'] = True
+app.config['DEBUG'] = True
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['JSON_AS_ASCII'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -91,22 +91,104 @@ with db.session.begin():
 		))
 
 
-@app.route('/')
-def index():
-	pass
+@app.route('/users/')
+def users():
+	result = []
+	for user in db.session.query(User).all():
+		result.append({
+			'age': user.age,
+			'email': user.email,
+			'first_name': user.first_name,
+			'id': user.id,
+			'last_name': user.last_name,
+			'phone': user.phone,
+			'role': user.role
+			})
+	return jsonify(result)
 
 
+@app.route('/users/<int:id>/')
+def user_by_id(id):
+	user = db.session.query(User).get(id)
+	return jsonify({
+			'age': user.age,
+			'email': user.email,
+			'first_name': user.first_name,
+			'id': user.id,
+			'last_name': user.last_name,
+			'phone': user.phone,
+			'role': user.role
+			})
 
-cursor = db.session.execute('SELECT * from user').cursor
-print(prettytable.from_db_cursor(cursor))
 
-cursor = db.session.execute('SELECT * from "order"').cursor
-print(prettytable.from_db_cursor(cursor))
+@app.route('/orders/')
+def orders():
+	result = []
+	for order in db.session.query(Order).all():
+		result.append({
+			'id': order.id,
+			'name': order.name,
+			'description': order.description,
+			'start_date': order.start_date,
+			'end_date': order.end_date,
+			'address': order.address,
+			'price': order.price,
+			'customer_id': order.customer_id,
+			'executor_id': order.executor_id
+		})
+	return jsonify(result)
 
-cursor = db.session.execute('SELECT * from offer').cursor
-print(prettytable.from_db_cursor(cursor))
 
-exit()
+@app.route('/orders/<int:id>/')
+def order_by_id(id):
+	order = db.session.query(Order).get(id)
+	return jsonify({
+			'id': order.id,
+			'name': order.name,
+			'description': order.description,
+			'start_date': order.start_date,
+			'end_date': order.end_date,
+			'address': order.address,
+			'price': order.price,
+			'customer_id': order.customer_id,
+			'executor_id': order.executor_id
+			})
+
+
+@app.route('/offers/')
+def offers():
+	result = []
+	for offer in db.session.query(Offer).all():
+		result.append({
+			'id': offer.id,
+			'order_id': offer.order_id,
+			'executor_id': offer.executor_id
+		})
+	return jsonify(result)
+
+
+@app.route('/offers/<int:id>/')
+def offer_by_id(id):
+	offer = db.session.query(Offer).get(id)
+	return jsonify({
+			'id': offer.id,
+			'order_id': offer.order_id,
+			'executor_id': offer.executor_id
+			})
+
+
+def print_table():
+	cursor = db.session.execute('SELECT * from user').cursor
+	print(prettytable.from_db_cursor(cursor))
+
+	cursor = db.session.execute('SELECT * from `order`').cursor
+	print(prettytable.from_db_cursor(cursor))
+
+	cursor = db.session.execute('SELECT * from offer').cursor
+	print(prettytable.from_db_cursor(cursor))
+
+
+# print_table()
 
 if __name__ == '__main__':
 	app.run()
