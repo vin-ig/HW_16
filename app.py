@@ -10,7 +10,7 @@ def load_json(path):
 
 
 app = Flask(__name__)
-app.config['DEBUG'] = True
+# app.config['DEBUG'] = True
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['JSON_AS_ASCII'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
