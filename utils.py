@@ -1,7 +1,7 @@
 import json
 
 
-def load_json(path):
+def load_json(path: str) -> list:
 	"""Загружает данные из json-файла"""
 	with open(path, encoding='utf-8') as file:
 		return json.load(file)
@@ -42,3 +42,11 @@ def response_offer(offer):
 		'order_id': offer.order_id,
 		'executor_id': offer.executor_id
 		}
+
+
+def check_keys(data: dict, keys: set) -> bool:
+	for key in data:
+		if key not in keys:
+			return False
+	else:
+		return True

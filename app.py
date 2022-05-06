@@ -94,20 +94,13 @@ def users():
 	if request.method == 'GET':
 		result = []
 		for user in db.session.query(User).all():
-			result.append({
-				'age': user.age,
-				'email': user.email,
-				'first_name': user.first_name,
-				'id': user.id,
-				'last_name': user.last_name,
-				'phone': user.phone,
-				'role': user.role
-				})
+			result.append(response_user(user))
 		return jsonify(result)
 
 	elif request.method == 'POST':
 		user = request.json
-		try:
+		allowed_keys = {'age', 'email', 'first_name', 'last_name', 'phone', 'role'}
+		if check_keys(user, allowed_keys):
 			new_user = User(
 				age=user.get('age'),
 				email=user.get('email'),
@@ -118,24 +111,21 @@ def users():
 			)
 			with db.session.begin():
 				db.session.add(new_user)
-			return f'Новый пользователь по имени {new_user.first_name} {new_user.last_name} успешно добавлен в базу!'
+			return 'Новый пользователь успешно добавлен в базу!\n' \
+					f'{json.dumps(response_user(new_user), indent=2, ensure_ascii=False)}'
+		else:
+			return 'В вводимых данных присутствуют неверные ключи'
 
 
 @app.route('/users/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def user_by_id(id):
 	"""Вывод, изменение, удаление пользователя"""
 	user = db.session.query(User).get(id)
+	if not user:
+		return 'В БД нет объекта с таким ID'
 
 	if request.method == 'GET':
-		return jsonify({
-			'age': user.age,
-			'email': user.email,
-			'first_name': user.first_name,
-			'id': user.id,
-			'last_name': user.last_name,
-			'phone': user.phone,
-			'role': user.role
-		})
+		return jsonify(response_user(user))
 
 	elif request.method == 'PUT':
 		update = request.json
@@ -149,12 +139,14 @@ def user_by_id(id):
 
 		db.session.add(user)
 		db.session.commit()
-		return f'Данные пользователя {user.first_name} {user.last_name} с ID {user.id} успешно обновлены!'
+		return 'Данные пользователя успешно обновлены!\n' \
+				f'{json.dumps(response_user(user), indent=2, ensure_ascii=False)}'
 
 	elif request.method == 'DELETE':
 		db.session.delete(user)
 		db.session.commit()
-		return f'Пользователь {user.first_name} {user.last_name} с ID {user.id} успешно удален из базы!'
+		return 'Пользователь успешно удален из базы!\n' \
+				f'{json.dumps(response_user(user), indent=2, ensure_ascii=False)}'
 
 
 @app.route('/orders/', methods=['GET', 'POST'])
@@ -163,53 +155,40 @@ def orders():
 	if request.method == 'GET':
 		result = []
 		for order in db.session.query(Order).all():
-			result.append({
-				'id': order.id,
-				'name': order.name,
-				'description': order.description,
-				'start_date': order.start_date,
-				'end_date': order.end_date,
-				'address': order.address,
-				'price': order.price,
-				'customer_id': order.customer_id,
-				'executor_id': order.executor_id
-			})
+			result.append(response_order(order))
 		return jsonify(result)
 
 	elif request.method == 'POST':
 		order = request.json
-		new_order = Order(
-			name=order.get('name'),
-			description=order.get('description'),
-			start_date=order.get('start_date'),
-			end_date=order.get('end_date'),
-			address=order.get('address'),
-			price=order.get('price'),
-			customer_id=order.get('customer_id'),
-			executor_id=order.get('executor_id')
-		)
-		with db.session.begin():
-			db.session.add(new_order)
-		return f'Новый заказ "{new_order.name}" успешно добавлен в базу!'
+		allowed_keys = {'name', 'description', 'start_date', 'end_date', 'address', 'price', 'customer_id', 'executor_id'}
+		if check_keys(order, allowed_keys):
+			new_order = Order(
+				name=order.get('name'),
+				description=order.get('description'),
+				start_date=order.get('start_date'),
+				end_date=order.get('end_date'),
+				address=order.get('address'),
+				price=order.get('price'),
+				customer_id=order.get('customer_id'),
+				executor_id=order.get('executor_id')
+			)
+			with db.session.begin():
+				db.session.add(new_order)
+			return 'Новый заказ успешно добавлен в базу!\n' \
+					f'{json.dumps(response_order(new_order), indent=2, ensure_ascii=False)}'
+		else:
+			return 'В вводимых данных присутствуют неверные ключи'
 
 
 @app.route('/orders/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def order_by_id(id):
 	"""Вывод, изменение, удаление заказов"""
 	order = db.session.query(Order).get(id)
+	if not order:
+		return 'В БД нет объекта с таким ID'
 
 	if request.method == 'GET':
-		return jsonify({
-				'id': order.id,
-				'name': order.name,
-				'description': order.description,
-				'start_date': order.start_date,
-				'end_date': order.end_date,
-				'address': order.address,
-				'price': order.price,
-				'customer_id': order.customer_id,
-				'executor_id': order.executor_id
-				})
+		return jsonify(response_order(order))
 
 	elif request.method == 'PUT':
 		update = request.json
@@ -225,12 +204,14 @@ def order_by_id(id):
 
 		db.session.add(order)
 		db.session.commit()
-		return f'Данные заказа "{order.name}" с ID {order.id} успешно обновлены!'
+		return 'Данные заказа успешно обновлены!\n' \
+		        f'{json.dumps(response_order(order), indent=2, ensure_ascii=False)}'
 
 	elif request.method == 'DELETE':
 		db.session.delete(order)
 		db.session.commit()
-		return f'Заказ "{order.name}" с ID {order.id} успешно удален из базы!'
+		return 'Заказ успешно удален из базы!\n' \
+				f'{json.dumps(response_order(order), indent=2, ensure_ascii=False)}'
 
 
 @app.route('/offers/', methods=['GET', 'POST'])
@@ -239,35 +220,34 @@ def offers():
 	if request.method == 'GET':
 		result = []
 		for offer in db.session.query(Offer).all():
-			result.append({
-				'id': offer.id,
-				'order_id': offer.order_id,
-				'executor_id': offer.executor_id
-			})
+			result.append(response_offer(offer))
 		return jsonify(result)
 
 	elif request.method == 'POST':
 		offer = request.json
-		new_offer = Offer(
-			order_id=offer.get('order_id'),
-			executor_id=offer.get('executor_id')
-		)
-		with db.session.begin():
-			db.session.add(new_offer)
-		return f'Новое предложение с ID {new_offer.id} успешно добавлено в базу!'
+		allowed_keys = {'order_id', 'executor_id'}
+		if check_keys(offer, allowed_keys):
+			new_offer = Offer(
+				order_id=offer.get('order_id'),
+				executor_id=offer.get('executor_id')
+			)
+			with db.session.begin():
+				db.session.add(new_offer)
+			return 'Новое предложение успешно добавлено в базу!\n' \
+					f'{json.dumps(response_offer(new_offer), indent=2, ensure_ascii=False)}'
+		else:
+			return 'В вводимых данных присутствуют неверные ключи'
 
 
 @app.route('/offers/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def offer_by_id(id):
 	"""Вывод, изменение, удаление предложений"""
 	offer = db.session.query(Offer).get(id)
+	if not offer:
+		return 'В БД нет объекта с таким ID'
 
 	if request.method == 'GET':
-		return jsonify({
-				'id': offer.id,
-				'order_id': offer.order_id,
-				'executor_id': offer.executor_id
-				})
+		return jsonify(response_offer(offer))
 
 	elif request.method == 'PUT':
 		update = request.json
@@ -277,12 +257,14 @@ def offer_by_id(id):
 
 		db.session.add(offer)
 		db.session.commit()
-		return f'Данные предложения с ID {offer.id} успешно обновлены!'
+		return 'Данные предложения успешно обновлены!\n' \
+				f'{json.dumps(response_offer(offer), indent=2, ensure_ascii=False)}'
 
 	elif request.method == 'DELETE':
 		db.session.delete(offer)
 		db.session.commit()
-		return f'Заказ с ID {offer.id} успешно удален из базы!'
+		return 'Предложение успешно удалено из базы!\n' \
+				f'{json.dumps(response_offer(offer), indent=2, ensure_ascii=False)}'
 
 
 if __name__ == '__main__':
