@@ -1,16 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import json
-
-
-def load_json(path):
-	"""Загружает данные из json-файла"""
-	with open(path, encoding='utf-8') as file:
-		return json.load(file)
-
+from utils import *
 
 app = Flask(__name__)
-# app.config['DEBUG'] = True
+app.config['DEBUG'] = True
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['JSON_AS_ASCII'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -28,7 +21,7 @@ class User(db.Model):
 	age = db.Column(db.Integer)
 	email = db.Column(db.String(40))
 	role = db.Column(db.String(20))
-	phone = db.Column(db.String(20), unique=True, nullable=True)
+	phone = db.Column(db.String(20))
 
 
 class Order(db.Model):
@@ -114,17 +107,18 @@ def users():
 
 	elif request.method == 'POST':
 		user = request.json
-		new_user = User(
-			age=user.get('age'),
-			email=user.get('email'),
-			first_name=user.get('first_name'),
-			last_name=user.get('last_name'),
-			phone=user.get('phone'),
-			role=user.get('role')
-		)
-		with db.session.begin():
-			db.session.add(new_user)
-		return f'Новый пользователь по имени {new_user.first_name} {new_user.last_name} успешно добавлен в базу!'
+		try:
+			new_user = User(
+				age=user.get('age'),
+				email=user.get('email'),
+				first_name=user.get('first_name'),
+				last_name=user.get('last_name'),
+				phone=user.get('phone'),
+				role=user.get('role')
+			)
+			with db.session.begin():
+				db.session.add(new_user)
+			return f'Новый пользователь по имени {new_user.first_name} {new_user.last_name} успешно добавлен в базу!'
 
 
 @app.route('/users/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
